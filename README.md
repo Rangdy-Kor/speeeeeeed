@@ -28,6 +28,12 @@ clean 문서는 바로 닫고, dirty 문서는 저장/저장 안 함/취소 확�
 
 ## 보존된 Canvas Prototype
 
+Virtual Desktop의 시각 계층은 `desktop.css`의 의미별 CSS token(색상·간격·radius·shadow·layer)을 공유합니다. `ui/Icon.tsx`의 작은 SVG set을 Desktop/Taskbar/Window/Explorer에서 재사용하고, neon 창 테두리·개발 watermark·Prototype UI 링크는 제거했습니다. Prototype은 아래 경로로 직접 접근합니다.
+
+Notepad의 파일/편집 메뉴(`ui/MenuBar.tsx`)는 저장·새로 만들기·DOM 전체 선택을 지원합니다. 메뉴는 바깥 pointer 입력과 Escape로 즉시 닫히며 화살표/Enter 키로도 조작합니다. 새로 만들기는 기존 dirty 확인과 저장 흐름을 사용합니다. Explorer는 Back/Up/Breadcrumb, Desktop/Documents Sidebar, Icon Grid로 구성하며 navigation history는 VFS와 별개인 Explorer state에 유지합니다.
+
+`.virtual-os`는 창/Taskbar를 포함하는 독립 stacking context입니다. 향후 HUD는 그 sibling인 `.game-hud-overlay`를 사용하며 `pointer-events: none`으로 desktop 입력을 통과시킵니다. 실제 HUD/Mission/시간 UI는 구현하지 않았고, application action은 애니메이션 완료를 기다리지 않습니다.
+
 기존 Stage 1~6을 연속 플레이하고 Stage 6 완료 시 Clear입니다. 플레이 중 진행도는 현재 Stage 번호 / 최종 목표 50개로 표시됩니다 (`1 / 50` → … → `6 / 50`). 실제 등록 개수는 Clear 판정과 Debug HUD에서만 사용합니다. 기존 60초 제한·Debug HUD·F3·viewport/DPR·테스트도 유지합니다.
 
 - `src/game/session.ts`: 순수 게임 상태·실시간 제한·즉시 미션 전환·미션별 소요 시간 기록. 시간 만료가 완료보다 우선하며, 중단된 탭에서도 제한 시간은 계속 흐릅니다.

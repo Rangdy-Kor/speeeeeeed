@@ -11,13 +11,13 @@ export interface WindowState {
   readonly minimized: boolean;
 }
 export interface DocumentSession { readonly content: string; readonly fileId: string | null; readonly dirty: boolean }
-export type DocumentIntent = { kind: 'close' } | { kind: 'openFile'; fileId: string };
+export type DocumentIntent = { kind: 'close' } | { kind: 'newDocument' } | { kind: 'openFile'; fileId: string };
 export type NotepadDialog =
   | { kind: 'confirmDocument'; after: DocumentIntent }
   | { kind: 'save'; after: DocumentIntent | null; error: string | null }
   | { kind: 'overwrite'; after: DocumentIntent | null; fileId: string; fileName: string };
 export interface NotepadState { readonly id: string; readonly type: 'notepad'; readonly session: DocumentSession; readonly dialog: NotepadDialog | null }
-export interface ExplorerState { readonly id: string; readonly type: 'explorer'; readonly directoryId: string; readonly selectedId: string | null }
+export interface ExplorerState { readonly id: string; readonly type: 'explorer'; readonly directoryId: string; readonly history: readonly string[]; readonly selectedId: string | null }
 export type ApplicationState = NotepadState | ExplorerState;
 export const APPLICATION_NAMES = { notepad: '메모장', explorer: '파일 탐색기' };
 export interface VirtualDesktopState {
@@ -36,7 +36,8 @@ export type DesktopAction =
   | { type: 'closeWindow' | 'focusWindow' | 'minimizeWindow' | 'maximizeWindow' | 'restoreWindow'; id: string }
   | { type: 'moveWindow'; id: string; x: number; y: number }
   | { type: 'setNotepadText'; applicationId: string; text: string }
-  | { type: 'saveDocument' | 'cancelDialog'; applicationId: string }
+  | { type: 'saveDocument' | 'newDocument' | 'cancelDialog'; applicationId: string }
+  | { type: 'backExplorer'; applicationId: string }
   | { type: 'submitSave'; applicationId: string; fileName: string }
   | { type: 'confirmDocument'; applicationId: string; choice: 'save' | 'discard' | 'cancel' }
   | { type: 'confirmOverwrite'; applicationId: string; overwrite: boolean }
@@ -76,6 +77,10 @@ function removeWindow(state: VirtualDesktopState, window: WindowState): VirtualD
 function finishDocument(state: VirtualDesktopState, app: NotepadState, after: DocumentIntent | null): VirtualDesktopState {
   const window = Object.values(state.windows).find(win => win.applicationId === app.id);
   if (after?.kind === 'close') return window ? removeWindow(state, window) : state;
+  if (after?.kind === 'newDocument') {
+    const next = setApp(state, { ...app, session: { content: '', fileId: null, dirty: false }, dialog: null });
+    return window ? focus(next, window) : next;
+  }
   if (after?.kind === 'openFile') {
     const file = getFile(state.fileSystem, after.fileId);
     if (!file) return setApp(state, { ...app, dialog: null });
@@ -96,7 +101,7 @@ function openApplication(state: VirtualDesktopState, type: ApplicationState['typ
   const id = `window-${state.nextId}`;
   const app: ApplicationState = type === 'notepad'
     ? { id: `notepad-${state.nextId}`, type, session: { content: '', fileId: null, dirty: false }, dialog: null }
-    : { id: `explorer-${state.nextId}`, type, directoryId: 'desktop', selectedId: null };
+    : { id: `explorer-${state.nextId}`, type, directoryId: 'desktop', history: [], selectedId: null };
   const offset = (state.zOrder.length % 5) * 28;
   const window: WindowState = { id, applicationId: app.id, minimized: false, mode: 'normal', bounds: fit({ x: 100 + offset, y: 72 + offset, width: 540, height: 380 }, state.workArea) };
   return focus({ ...state, applications: { ...state.applications, [app.id]: app }, nextId: state.nextId + 1 }, window);
@@ -124,7 +129,11 @@ export function desktopReducer(state: VirtualDesktopState, action: DesktopAction
     const app = state.applications[action.applicationId];
     if (!app) return state;
     if (app.type === 'explorer') {
-      if (action.type === 'navigateExplorer' && state.fileSystem.entries[action.directoryId]?.kind === 'directory') return setApp(state, { ...app, directoryId: action.directoryId, selectedId: null });
+      if (action.type === 'backExplorer') {
+        const directoryId = app.history.at(-1);
+        return directoryId ? setApp(state, { ...app, directoryId, history: app.history.slice(0, -1), selectedId: null }) : state;
+      }
+      if (action.type === 'navigateExplorer' && state.fileSystem.entries[action.directoryId]?.kind === 'directory' && action.directoryId !== app.directoryId) return setApp(state, { ...app, directoryId: action.directoryId, history: [...app.history, app.directoryId], selectedId: null });
       if (action.type === 'selectExplorerItem' && state.fileSystem.entries[action.entryId]?.parentId === app.directoryId) return setApp(state, { ...app, selectedId: action.entryId });
       return state;
     }
@@ -134,6 +143,11 @@ export function desktopReducer(state: VirtualDesktopState, action: DesktopAction
     }
     if (action.type === 'cancelDialog') return setApp(state, { ...app, dialog: app.dialog?.kind === 'overwrite' ? { kind: 'save', after: app.dialog.after, error: null } : null });
     if (action.type === 'saveDocument') return app.dialog ? state : save(state, app, null);
+    if (action.type === 'newDocument') {
+      if (app.dialog) return state;
+      const after: DocumentIntent = { kind: 'newDocument' };
+      return app.session.dirty ? setApp(state, { ...app, dialog: { kind: 'confirmDocument', after } }) : finishDocument(state, app, after);
+    }
     if (action.type === 'confirmDocument') {
       if (app.dialog?.kind !== 'confirmDocument') return state;
       if (action.choice === 'cancel') return setApp(state, { ...app, dialog: null });

@@ -151,14 +151,16 @@ describe('document lifecycle dialogs', () => {
     render(<VirtualDesktop store={store} />);
     await user.dblClick(screen.getByRole('button', { name: '메모장 열기' }));
     await user.type(screen.getByRole('textbox'), 'hello');
-    await user.click(screen.getByRole('button', { name: '저장' }));
+    await user.click(screen.getByRole('menuitem', { name: '파일' }));
+    await user.click(screen.getByRole('menuitem', { name: /저장/ }));
     const dialog = screen.getByRole('dialog', { name: '문서 저장' });
     expect(screen.getByRole('region', { name: '메모장 notepad-1' }).querySelector('.window-content')?.hasAttribute('inert')).toBe(true);
     await user.keyboard('test.txt');
     await user.click(within(dialog).getByRole('button', { name: '저장' }));
     expect(store.getSnapshot().fileSystem.entries['file-1']).toMatchObject({ name: 'test.txt', content: 'hello' });
     await user.type(screen.getByRole('textbox'), ' world');
-    await user.click(screen.getByRole('button', { name: '저장' }));
+    await user.click(screen.getByRole('menuitem', { name: '파일' }));
+    await user.click(screen.getByRole('menuitem', { name: /저장/ }));
     expect(screen.queryByRole('dialog')).toBeNull();
     expect(store.getSnapshot().fileSystem.entries['file-1']).toMatchObject({ content: 'hello world' });
     expect((store.getSnapshot().applications['notepad-1'] as NotepadState).session.dirty).toBe(false);
