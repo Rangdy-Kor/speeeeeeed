@@ -1,0 +1,24 @@
+:root { font-family: Inter, "Noto Sans KR", system-ui, sans-serif; color: #f5f7ff; background: #10131d; font-synthesis: none; }
+* { box-sizing: border-box; }
+body { margin: 0; }
+#app, main { width: 100%; height: 100vh; height: 100dvh; overflow: hidden; }
+[hidden] { display: none !important; }
+.gameplay { position: absolute; inset: 0; }
+canvas { display: block; width: 100%; height: 100%; touch-action: none; outline: none; }
+.screen { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; padding: 24px; }
+.eyebrow { color: #bcc4d4; font-size: clamp(12px, 1.2vw, 16px); letter-spacing: 3px; }
+h1 { margin: 8px 0; font-size: clamp(32px, 7vw, 110px); font-style: italic; font-weight: 950; letter-spacing: -0.045em; }
+.lobby h1 { color: #d5ff60; }
+.description { color: #bcc4d4; margin: 12px 0 32px; font-size: clamp(14px, 1.4vw, 20px); }
+button { border: 0; border-radius: 6px; background: #f5f7ff; color: #10131d; padding: 16px 46px; font: 800 20px system-ui; cursor: pointer; }
+button:hover { background: #d5ff60; }
+button:focus-visible { outline: 3px solid #d5ff60; outline-offset: 5px; }
+.controls { color: #929bb0; font-size: 12px; line-height: 1.8; margin: 24px 0 0; }
+.debug-hud { position: fixed; left: 16px; bottom: 16px; z-index: 1; pointer-events: none; white-space: pre; font: 12px/1.7 ui-monospace, monospace; color: #aab7ce; background: #080b12dd; padding: 8px 12px; }
+@media (max-height: 400px) {
+  .screen { padding: 12px; }
+  .eyebrow { margin: 0; }
+  .description { margin: 4px 0 16px; }
+  button { font-size: 16px; padding: 10px 32px; }
+  .controls { margin: 12px 0 0; }
+}
