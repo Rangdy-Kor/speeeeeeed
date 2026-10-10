@@ -1,6 +1,6 @@
 # SPEEEEEEED
 
-Vite + Vanilla TypeScript + Canvas 2D 프로토타입. 공식 표기는 `SP` + E 7개 + `D!!!`, 패키지 이름은 `sp` + e 7개 + `d`입니다.
+본편은 Vite + React + TypeScript + DOM 기반 Virtual Desktop Foundation 1입니다. 기존 Vanilla TypeScript + Canvas 2D 프로토타입은 별도 진입점으로 보존합니다. 공식 표기는 `SP` + E 7개 + `D!!!`, 패키지 이름은 `sp` + e 7개 + `d`입니다.
 
 ```sh
 pnpm dev
@@ -8,7 +8,27 @@ pnpm test --run
 pnpm build
 ```
 
-현재는 정식 Stage 1~6을 연속 플레이하고 Stage 6 완료 시 Clear입니다. 플레이 중 진행도는 현재 Stage 번호 / 최종 목표 50개로 표시됩니다 (`1 / 50` → … → `6 / 50`). 실제 등록 개수는 Clear 판정과 Debug HUD에서만 사용합니다.
+## Virtual Desktop Foundation 1
+
+`/`는 새 데스크톱, `/prototype.html`은 기존 6개 Stage 프로토타입입니다. `vite.config.ts`는 둘 다 빌드하며, 배포에서도 각 HTML 진입점을 독립 실행할 수 있습니다. 서로 다른 CSS와 입력 계층을 사용합니다.
+
+- `src/desktop/domain.ts`: React와 독립적인 immutable 상태·순수 reducer. Window 상태와 Notepad Document Session (`content`, `fileId`, `dirty`), Save/Close dialog lifecycle을 관리합니다.
+- `src/desktop/filesystem.ts`: in-memory File/Directory 상태. 기본 Desktop/Documents 폴더와 파일 생성·조회·내용 갱신 API를 제공합니다. 실제 저장 장치·브라우저 persistence는 사용하지 않습니다.
+- `src/desktop/store.ts`: snapshot/subscribe/dispatch API. 향후 Mission은 이 결과 상태를 관찰할 수 있습니다. React UI는 `useSyncExternalStore`로 구독합니다.
+- `src/desktop/ui/`: 데스크톱·아이콘·작업 표시줄과 창·titlebar·DOM textarea. 사용자 조작을 domain action으로 전달합니다.
+- `src/desktop/main.tsx`, `desktop.css`: 본편 진입점과 DOM 레이아웃. CSS grid의 작업 영역을 ResizeObserver로 측정합니다. Canvas 좌표계를 사용하지 않습니다.
+
+메모장과 파일 탐색기 아이콘을 더블 클릭하거나 키보드 Enter로 엽니다. Notepad는 단일 문서/창이며 이미 실행 중이면 해당 창을 표시하고 focus합니다. 닫은 뒤 새로 실행하면 빈 session을 생성합니다. 제목 표시줄을 드래그하고 최소화·최대화·복원·닫기를 사용할 수 있으며 작업 표시줄 버튼으로 최소화된 창을 다시 표시합니다. 최대화는 작업 표시줄을 제외한 영역 전체를 사용합니다. 텍스트와 dirty 상태는 이러한 창 조작에서 보존합니다. Taskbar의 제목은 동일하게 유지하고 active/inactive/minimized 상태는 하단 indicator로 표현합니다. 창 DOM 순서를 고정하고 z-order는 CSS z-index로만 적용하여 비활성 control 클릭이 focus 재배치 중 유실되지 않도록 합니다.
+
+활성 Notepad의 Ctrl+S와 저장 버튼은 같은 `saveDocument` action을 실행합니다. 새 문서 Save dialog는 `새 텍스트 문서.txt` 전체를 선택하여 바로 입력하거나 Enter로 저장할 수 있습니다. Escape는 취소하며 IME 조합 중 Enter는 제출하지 않습니다. Documents에 File을 생성해 session과 연결하고, 재저장은 같은 File의 content를 갱신합니다. 편집 중 내용은 저장된 content와 별개입니다. 중복 이름은 덮어쓰기 확인을 거치고 기존 File ID를 유지합니다.
+
+clean 문서는 바로 닫고, dirty 문서는 저장/저장 안 함/취소 확인을 표시합니다. 새 문서의 저장 후 닫기는 파일명 dialog로 이어지며 성공적으로 저장한 뒤에만 닫습니다. dialog 동안 해당 창의 배경 UI는 inert이고 domain도 편집·중복 Close·창 조작을 차단합니다. 다른 창은 계속 사용할 수 있습니다. Close 시 session/application은 종료하지만 저장된 File은 유지됩니다. 새로고침하면 File System도 초기화됩니다.
+
+`ui/FileExplorer.tsx`는 같은 VFS의 child item을 표시합니다. Explorer의 `directoryId`/`selectedId`는 application navigation state로 분리되어 있습니다. Desktop/Documents 탐색, 상위 폴더 이동, directory double-click 이동, file double-click 열기를 지원합니다. `openFile` action은 Notepad의 fileId/content/dirty를 로드하며 clean session은 즉시 교체합니다. dirty session 교체는 닫기와 동일한 확인 흐름을 사용하며, 저장 완료 후 후속 동작(`close` 또는 `openFile`)을 실행합니다. 취소하면 기존 문서를 유지합니다. 본편 Mission, 파일 이동·이름 변경·삭제·persistence는 아직 구현하지 않습니다.
+
+## 보존된 Canvas Prototype
+
+기존 Stage 1~6을 연속 플레이하고 Stage 6 완료 시 Clear입니다. 플레이 중 진행도는 현재 Stage 번호 / 최종 목표 50개로 표시됩니다 (`1 / 50` → … → `6 / 50`). 실제 등록 개수는 Clear 판정과 Debug HUD에서만 사용합니다. 기존 60초 제한·Debug HUD·F3·viewport/DPR·테스트도 유지합니다.
 
 - `src/game/session.ts`: 순수 게임 상태·실시간 제한·즉시 미션 전환·미션별 소요 시간 기록. 시간 만료가 완료보다 우선하며, 중단된 탭에서도 제한 시간은 계속 흐릅니다.
 - `src/game/mission.ts`: 시작 / 업데이트 / 렌더링 / 입력 / 완료 / 정리 인터페이스. 미션 실패나 페널티는 없습니다.

@@ -1,0 +1,52 @@
+:root { font-family: system-ui, sans-serif; color: #ecf0f5; background: #10131d; font-synthesis: none; }
+* { box-sizing: border-box; }
+body { margin: 0; }
+button, textarea { font: inherit; }
+button { cursor: pointer; }
+button:focus-visible, a:focus-visible { outline: 2px solid #d5ff60; outline-offset: -3px; }
+[hidden] { display: none !important; }
+.virtual-desktop { width: 100%; height: 100vh; height: 100dvh; display: grid; grid-template-rows: minmax(0, 1fr) 48px; overflow: hidden; }
+.desktop-surface { position: relative; overflow: hidden; background: radial-gradient(ellipse at 65% 40%, #243d3a 0%, #182430 45%, #10131d 100%); }
+.desktop-icons { position: absolute; top: 20px; left: 16px; }
+.desktop-icon { display: flex; flex-direction: column; align-items: center; gap: 6px; width: 88px; padding: 10px; color: #fff; background: transparent; border: 1px solid transparent; border-radius: 5px; user-select: none; }
+.desktop-icon:hover { background: #ffffff12; border-color: #ffffff35; }
+.notepad-icon { display: grid; place-items: center; width: 44px; height: 48px; background: #d5ff60; color: #182430; border-radius: 4px; font-size: 34px; }
+.desktop-icon > span:last-child { font-size: 13px; }
+.wallpaper-mark { position: absolute; right: 7%; bottom: 10%; display: grid; gap: 12px; pointer-events: none; user-select: none; opacity: .2; }
+.wallpaper-mark strong { font-size: clamp(24px, 5vw, 72px); font-style: italic; letter-spacing: -.04em; }
+.wallpaper-mark span { font-size: 11px; letter-spacing: .18em; }
+.taskbar { display: flex; align-items: center; gap: 12px; padding: 6px 12px; background: #10151eee; border-top: 1px solid #ffffff18; min-width: 0; }
+.taskbar-brand { font-weight: 900; font-style: italic; }.taskbar-brand span { color: #d5ff60; }
+.taskbar-windows { display: flex; gap: 6px; flex: 1; min-width: 0; overflow-x: auto; }
+.taskbar button { flex-shrink: 0; height: 34px; padding: 0 12px; border: 1px solid #ffffff15; border-radius: 4px; color: #c8d0dc; background: #ffffff08; font-size: 12px; }
+.taskbar button.active { background: #ffffff15; }
+.taskbar-item { position: relative; }
+.taskbar-item::after { content: ''; position: absolute; bottom: 2px; left: 35%; right: 35%; height: 3px; border-radius: 2px; background: #a1adbc; }
+.taskbar-item.active::after { left: 15%; right: 15%; background: #d5ff60; }
+.taskbar-item.minimized::after { left: 44%; right: 44%; background: #596478; }
+.window-content { display: flex; flex-direction: column; flex: 1; min-height: 0; }
+.notepad-toolbar { display: flex; align-items: center; gap: 12px; padding: 5px 12px; background: #e4e8ed; color: #415069; font-size: 11px; }
+.notepad-toolbar button { border: 1px solid #aab3c1; border-radius: 3px; background: #fff; padding: 3px 12px; }
+.document-dialog-backdrop { position: absolute; inset: 0; display: grid; place-items: center; background: #10131d88; padding: 12px; overflow: auto; }
+.document-dialog { width: min(340px, 100%); padding: 20px; color: #18202c; background: #f6f7f8; border-radius: 5px; box-shadow: 0 8px 30px #0006; font-size: 13px; }
+.document-dialog h2 { margin: 0 0 16px; font-size: 16px; }
+.document-dialog label { display: grid; gap: 6px; }.document-dialog input { width: 100%; padding: 8px; border: 1px solid #7a879a; font: inherit; }
+.dialog-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 16px; }.dialog-actions button { border: 1px solid #8c99ac; border-radius: 3px; background: white; padding: 7px 12px; font-size: 12px; }
+.prototype-link { color: #a1adbc; font-size: 11px; white-space: nowrap; }
+.desktop-window { position: absolute; display: flex; flex-direction: column; background: #f6f7f8; border: 1px solid #6b788b; box-shadow: 0 12px 40px #0006; border-radius: 6px; overflow: hidden; min-width: 0; }
+.desktop-window.is-focused { border-color: #d5ff60; }
+.window-titlebar { display: flex; align-items: center; justify-content: space-between; height: 40px; min-height: 40px; background: #283244; color: #aab3c1; touch-action: none; user-select: none; cursor: move; }
+.is-focused .window-titlebar { background: #334156; color: #fff; }.window-titlebar.maximized { cursor: default; }
+.window-title { padding-left: 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 13px; }
+.window-controls { display: flex; height: 100%; flex-shrink: 0; }.window-controls button { width: 40px; border: 0; background: transparent; color: inherit; font-size: 20px; }
+.window-controls button:hover { background: #ffffff20; }.window-controls .close-window:hover { background: #bc4252; color: white; }
+.notepad-editor { flex: 1; min-height: 0; width: 100%; border: 0; outline: none; resize: none; padding: 16px; color: #18202c; background: #f6f7f8; font: 16px/1.65 ui-monospace, monospace; }
+.file-explorer { display: flex; flex-direction: column; min-height: 0; flex: 1; color: #18202c; }
+.explorer-navigation { display: flex; flex-wrap: wrap; gap: 6px; padding: 8px; background: #e4e8ed; }
+.explorer-navigation button { padding: 5px 8px; border: 1px solid #aab3c1; border-radius: 3px; background: white; font-size: 12px; }
+.explorer-location { margin: 0; padding: 10px 12px; font-size: 14px; border-bottom: 1px solid #d3d9e1; }
+.explorer-items { padding: 8px; overflow: auto; flex: 1; }
+.explorer-items p { padding: 0 8px; font-size: 13px; color: #596478; }
+.explorer-item { display: flex; align-items: center; gap: 10px; width: 100%; padding: 8px; border: 1px solid transparent; background: transparent; color: inherit; text-align: left; overflow-wrap: anywhere; }
+.explorer-item:hover { background: #e4e8ed; }.explorer-item.selected { background: #e7efce; border-color: #a2b766; }
+.explorer-item span { font-size: 22px; }
