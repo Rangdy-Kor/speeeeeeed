@@ -1,15 +1,21 @@
 import type { GameCanvas } from './canvas';
 import type { GameInput, InputState, Point } from './mission';
 
+export function normalizeWheelDelta(delta: number, mode: number, pageHeight: number): number {
+  return delta * (mode === 1 ? 16 : mode === 2 ? pageHeight : 1);
+}
+
 export class InputController implements InputState {
   readonly keys = new Set<string>();
   readonly pointers = new Map<number, Point>();
+  hoverPoint: Point | null = null;
   private readonly abort = new AbortController();
   constructor(
     canvas: GameCanvas,
     beforeEvent: (now: number) => void,
     dispatch: (event: GameInput, now: number) => void,
     isPlaying: () => boolean,
+    consumesWheel: () => boolean = () => false,
   ) {
     const options = { signal: this.abort.signal };
     canvas.element.addEventListener('contextmenu', event => {
@@ -22,6 +28,7 @@ export class InputController implements InputState {
         const now = performance.now();
         beforeEvent(now);
         const point = canvas.point(event.clientX, event.clientY);
+        if (event.pointerType === 'mouse') this.hoverPoint = point;
         if (type === 'pointerdown') {
           canvas.element.focus({ preventScroll: true });
           canvas.element.setPointerCapture(event.pointerId);
@@ -34,6 +41,23 @@ export class InputController implements InputState {
         dispatch({ type, pointerId: event.pointerId, point }, now);
       }, options);
     }
+    canvas.element.addEventListener('pointerleave', () => { this.hoverPoint = null; }, options);
+    for (const type of ['click', 'dblclick'] as const) {
+      canvas.element.addEventListener(type, event => {
+        if (!isPlaying() || event.button !== 0) return;
+        if (type === 'dblclick' && document.activeElement !== canvas.element) return;
+        const now = performance.now();
+        beforeEvent(now);
+        dispatch({ type, point: canvas.point(event.clientX, event.clientY) }, now);
+      }, options);
+    }
+    canvas.element.addEventListener('wheel', event => {
+      if (!isPlaying() || !consumesWheel()) return;
+      event.preventDefault();
+      const now = performance.now();
+      beforeEvent(now);
+      dispatch({ type: 'wheel', delta: normalizeWheelDelta(event.deltaY || event.deltaX, event.deltaMode, canvas.viewport.height) }, now);
+    }, { ...options, passive: false });
     canvas.element.addEventListener('lostpointercapture', event => {
       if (!this.pointers.has(event.pointerId)) return;
       const now = performance.now();
@@ -63,6 +87,6 @@ export class InputController implements InputState {
     window.addEventListener('blur', reset, options);
     document.addEventListener('visibilitychange', () => { if (document.hidden) reset(); }, options);
   }
-  clear(): void { this.keys.clear(); this.pointers.clear(); }
+  clear(): void { this.keys.clear(); this.pointers.clear(); this.hoverPoint = null; }
   dispose(): void { this.abort.abort(); this.clear(); }
 }

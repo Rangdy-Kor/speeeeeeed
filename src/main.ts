@@ -4,7 +4,8 @@ import { DEBUG_HUD, FINAL_MISSION_COUNT, GAME_TITLE, MISSION_INSTRUCTION_FADE_MS
 import { DebugHud } from './game/debug';
 import { InputController } from './game/input';
 import { GameSession } from './game/session';
-import { createPrototypeMissions } from './missions/prototypes';
+import type { Mission } from './game/mission';
+import { createStages } from './missions/stages';
 
 document.title = GAME_TITLE;
 const app = document.querySelector<HTMLDivElement>('#app')!;
@@ -15,10 +16,10 @@ app.innerHTML = `
       <h1 id="game-title"></h1>
       <p class="description">생각은 짧게, 움직임은 빠르게.</p>
       <button type="button" class="start">시작 →</button>
-      <p class="controls">클릭 · 드래그 · 꾹 누르기 (터치 또는 SPACE)</p>
+      <p class="controls">마우스 · 키보드 · 휠</p>
     </section>
     <section class="gameplay" aria-label="게임" hidden>
-      <canvas tabindex="0" aria-label="게임 플레이 영역. 원 클릭, 원 드래그, 스페이스 또는 원 유지 입력."></canvas>
+      <canvas tabindex="0" aria-label="게임 플레이 영역. 클릭, 스페이스, 드래그, 휠, 숫자 1부터 9, 더블 클릭."></canvas>
     </section>
     <section class="screen result" aria-labelledby="result-title" aria-live="polite" hidden>
       <h1 id="result-title"></h1>
@@ -34,11 +35,16 @@ const heading = result.querySelector('h1')!;
 const description = result.querySelector('.description')!;
 const restart = result.querySelector('button')!;
 const canvas = new GameCanvas(app.querySelector('canvas')!);
-const session = new GameSession(createPrototypeMissions(() => canvas.viewport));
+const session = new GameSession(createStages(() => canvas.viewport));
+let inputMission: Mission | null = null;
 const input: InputController = new InputController(canvas, now => {
+  inputMission = session.mission;
   canvas.refresh();
   session.update(now, input);
-}, (event, now) => session.handleInput(event, now), () => session.phase === 'playing');
+}, (event, now) => {
+  // An update may finish an animated stage; its triggering event stays in that stage.
+  if (inputMission === session.mission) session.handleInput(event, now);
+}, () => session.phase === 'playing', () => session.mission?.usesWheel === true);
 const debug = new DebugHud(app, DEBUG_HUD);
 function syncScreen(): void {
   lobby.hidden = session.phase !== 'lobby';
@@ -80,11 +86,15 @@ function frame(now: number): void {
       ctx.save();
       ctx.globalAlpha = Math.min(1, (MISSION_INSTRUCTION_MS - messageAge) / MISSION_INSTRUCTION_FADE_MS);
       ctx.font = 'bold 44px system-ui';
+      const instructionWidth = ctx.measureText(session.mission!.instruction).width;
+      const fontSize = Math.min(44, 44 * Math.max(1, canvas.viewport.width - 48) / Math.max(1, instructionWidth));
+      ctx.font = `bold ${fontSize}px system-ui`;
       ctx.textAlign = 'center';
       ctx.fillText(session.mission!.instruction, canvas.viewport.centerX, Math.min(170, canvas.viewport.height * 0.24));
       ctx.restore();
     }
   }
+  canvas.element.style.cursor = session.phase === 'playing' && input.hoverPoint && session.mission?.isInteractive?.(input.hoverPoint) ? 'pointer' : 'default';
   if (session.phase !== previousPhase) {
     syncScreen();
     previousPhase = session.phase;
