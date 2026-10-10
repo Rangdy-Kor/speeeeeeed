@@ -7,6 +7,8 @@ import { Icon } from './Icon';
 export function FileExplorer({ application, fileSystem, store }: { application: ExplorerState; fileSystem: FileSystemState; store: DesktopStore }) {
   const directory = fileSystem.entries[application.directoryId];
   const children = listChildren(fileSystem, application.directoryId);
+  const selectedFile = children.find(entry => entry.id === application.selectedId && entry.kind === 'file');
+  const removeSelected = () => { if (selectedFile) store.dispatch({ type: 'deleteFile', fileId: selectedFile.id }); };
   const ancestors: FileEntry[] = [];
   let entry: FileEntry | undefined = directory;
   while (entry) {
@@ -14,7 +16,12 @@ export function FileExplorer({ application, fileSystem, store }: { application: 
     entry = entry.parentId ? fileSystem.entries[entry.parentId] : undefined;
   }
   const navigate = (directoryId: string) => store.dispatch({ type: 'navigateExplorer', applicationId: application.id, directoryId });
-  return <div className="file-explorer">
+  return <div className="file-explorer" onKeyDown={event => {
+    const target = event.target as Element;
+    if (event.key === 'Delete' && !event.nativeEvent.isComposing && !target.closest('input, textarea, [contenteditable="true"]') && selectedFile) {
+      event.preventDefault(); removeSelected();
+    }
+  }}>
     <nav className="explorer-navigation" aria-label="폴더 탐색">
       <button className="icon-button" aria-label="뒤로" disabled={application.history.length === 0} onClick={() => store.dispatch({ type: 'backExplorer', applicationId: application.id })}><Icon name="back" /></button>
       <button className="icon-button" aria-label="상위 폴더" disabled={!directory?.parentId} onClick={() => { if (directory?.parentId) navigate(directory.parentId); }}><Icon name="up" /></button>
@@ -24,6 +31,7 @@ export function FileExplorer({ application, fileSystem, store }: { application: 
           <button aria-label={`${item.name || '내 컴퓨터'}로 이동`} aria-current={item.id === application.directoryId ? 'location' : undefined} onClick={() => navigate(item.id)}>{item.name || '내 컴퓨터'}</button>
         </span>)}
       </nav>
+      <button className="explorer-delete" disabled={!selectedFile} onClick={removeSelected}>삭제</button>
     </nav>
     <h2 className="sr-only">{directory?.name || '내 컴퓨터'}/</h2>
     <div className="explorer-body">

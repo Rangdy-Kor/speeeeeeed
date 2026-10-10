@@ -24,7 +24,19 @@ pnpm build
 
 clean 문서는 바로 닫고, dirty 문서는 저장/저장 안 함/취소 확인을 표시합니다. 새 문서의 저장 후 닫기는 파일명 dialog로 이어지며 성공적으로 저장한 뒤에만 닫습니다. dialog 동안 해당 창의 배경 UI는 inert이고 domain도 편집·중복 Close·창 조작을 차단합니다. 다른 창은 계속 사용할 수 있습니다. Close 시 session/application은 종료하지만 저장된 File은 유지됩니다. 새로고침하면 File System도 초기화됩니다.
 
-`ui/FileExplorer.tsx`는 같은 VFS의 child item을 표시합니다. Explorer의 `directoryId`/`selectedId`는 application navigation state로 분리되어 있습니다. Desktop/Documents 탐색, 상위 폴더 이동, directory double-click 이동, file double-click 열기를 지원합니다. `openFile` action은 Notepad의 fileId/content/dirty를 로드하며 clean session은 즉시 교체합니다. dirty session 교체는 닫기와 동일한 확인 흐름을 사용하며, 저장 완료 후 후속 동작(`close` 또는 `openFile`)을 실행합니다. 취소하면 기존 문서를 유지합니다. 본편 Mission, 파일 이동·이름 변경·삭제·persistence는 아직 구현하지 않습니다.
+`ui/FileExplorer.tsx`는 같은 VFS의 child item을 표시합니다. Explorer의 `directoryId`/`selectedId`는 application navigation state로 분리되어 있습니다. Desktop/Documents 탐색, 상위 폴더 이동, directory double-click 이동, file double-click 열기를 지원합니다. `openFile` action은 Notepad의 fileId/content/dirty를 로드하며 clean session은 즉시 교체합니다. dirty session 교체는 닫기와 동일한 확인 흐름을 사용하며, 저장 완료 후 후속 동작(`close` 또는 `openFile`)을 실행합니다. 취소하면 기존 문서를 유지합니다. 텍스트 파일 삭제는 선택 후 Delete 또는 삭제 버튼으로 즉시 실행합니다. Directory 삭제는 domain에서 거부합니다. 파일 이동·이름 변경·persistence는 아직 구현하지 않습니다.
+
+## 첫 Desktop Mission Batch
+
+`/`에서 시작 버튼을 누르면 Desktop/VFS를 초기화하고 첫 Mission을 활성화합니다. 순서는 메모장 열기 → SPEED 입력 → 전체 선택 → FASTER 교체 → Save 요청 → speed.txt 저장 → 메모장 닫기 → Explorer 열기 → 같은 파일 삭제 → Explorer 닫기입니다. Explorer는 정상 시작 위치인 Desktop에서 열리므로 Documents 이동도 파일 삭제 작업의 일부입니다.
+
+- `src/desktop/missions/definitions.ts`: 독립적인 Mission 정의와 semantic 완료 조건. 파일 생성은 이름·내용·session 연결·dirty 상태를 함께 확인하며, 삭제는 저장한 실제 File ID의 제거를 확인합니다.
+- `src/desktop/missions/runtime.ts`: Desktop store를 동기적으로 관찰하고 완료 즉시 전환합니다. 총 개수는 definitions.length에서 가져옵니다. 기본 clock은 performance.now이며 Start부터 마지막 완료까지 elapsed를 기록합니다.
+- `src/desktop/ui/MissionGame.tsx`: Start/Restart와 개발 Result, 현재 Mission 번호/총 개수 및 얇은 progress bar, 중앙 instruction. 지시는 800ms 표시 후 150ms fade하며 animation은 완료 조건과 무관합니다.
+
+Notepad는 native select/selectionchange로 실제 selection을 application 상태에 전달합니다. Mission 전환은 Desktop을 remount하거나 focus를 변경하지 않습니다. Whole-run Start/Restart에서만 resetDesktop과 runId를 사용해 창·session·파일·navigation·메뉴·dialog 및 DOM selection을 초기화합니다. 삭제한 파일을 다른 Notepad가 편집 중이라면 content는 보존하고 연결을 해제해 미저장 문서로 유지합니다.
+
+이번 batch에는 60초 강제 종료·점수·실패·페널티·BGM이 없습니다. 최종 Result UI가 아닌 반복 측정용 완료 화면만 제공하며, 기존 Canvas Prototype의 60초 게임 규칙은 별도로 유지합니다.
 
 ## 보존된 Canvas Prototype
 
@@ -32,7 +44,7 @@ Virtual Desktop의 시각 계층은 `desktop.css`의 의미별 CSS token(색상�
 
 Notepad의 파일/편집 메뉴(`ui/MenuBar.tsx`)는 저장·새로 만들기·DOM 전체 선택을 지원합니다. 메뉴는 바깥 pointer 입력과 Escape로 즉시 닫히며 화살표/Enter 키로도 조작합니다. 새로 만들기는 기존 dirty 확인과 저장 흐름을 사용합니다. Explorer는 Back/Up/Breadcrumb, Desktop/Documents Sidebar, Icon Grid로 구성하며 navigation history는 VFS와 별개인 Explorer state에 유지합니다.
 
-`.virtual-os`는 창/Taskbar를 포함하는 독립 stacking context입니다. 향후 HUD는 그 sibling인 `.game-hud-overlay`를 사용하며 `pointer-events: none`으로 desktop 입력을 통과시킵니다. 실제 HUD/Mission/시간 UI는 구현하지 않았고, application action은 애니메이션 완료를 기다리지 않습니다.
+`.virtual-os`는 창/Taskbar를 포함하는 독립 stacking context입니다. 향후 HUD는 그 sibling인 `.game-hud-overlay`를 사용하며 `pointer-events: none`으로 desktop 입력을 통과시킵니다. 본편 Mission HUD는 이 layer에서 입력을 통과시키고, application action은 애니메이션 완료를 기다리지 않습니다.
 
 기존 Stage 1~6을 연속 플레이하고 Stage 6 완료 시 Clear입니다. 플레이 중 진행도는 현재 Stage 번호 / 최종 목표 50개로 표시됩니다 (`1 / 50` → … → `6 / 50`). 실제 등록 개수는 Clear 판정과 Debug HUD에서만 사용합니다. 기존 60초 제한·Debug HUD·F3·viewport/DPR·테스트도 유지합니다.
 

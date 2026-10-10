@@ -92,6 +92,8 @@ button:focus-visible, input:focus-visible { outline: 1px solid var(--focus-ring)
 .explorer-breadcrumb button { border: 0; border-radius: var(--radius-small); background: transparent; font-size: 12px; padding: var(--space-1) var(--space-2); }
 .explorer-breadcrumb button:hover { background: var(--hover); }
 .explorer-breadcrumb button[aria-current] { font-weight: 500; }
+.explorer-delete { flex-shrink: 0; border: 0; border-radius: var(--radius-control); padding: var(--space-1) var(--space-2); background: transparent; font-size: 12px; }
+.explorer-delete:hover:not(:disabled) { background: var(--hover); }
 .explorer-body { display: grid; grid-template-columns: 128px minmax(0, 1fr); min-height: 0; flex: 1; }
 .explorer-sidebar { display: flex; flex-direction: column; gap: var(--space-1); overflow: auto; padding: var(--space-3) var(--space-2); background: var(--surface-muted); }
 .sidebar-label { padding: var(--space-1) var(--space-2); font-size: 11px; color: var(--text-secondary); }
@@ -116,3 +118,16 @@ button:focus-visible, input:focus-visible { outline: 1px solid var(--focus-ring)
   .explorer-items { gap: var(--space-1); padding: var(--space-2); }
   .document-dialog { padding: var(--space-4); }
 }
+.mission-game { position: relative; isolation: isolate; height: 100vh; height: 100dvh; overflow: hidden; }
+.mission-desktop { height: 100%; }
+.mission-progress { position: absolute; inset: 0 0 auto; color: var(--text-on-dark); font-size: 13px; text-align: right; text-shadow: 0 1px 4px var(--desktop-bg); }
+.mission-progress > span { display: inline-block; padding: var(--space-3) var(--space-4); }
+.mission-progress-track { height: 2px; background: var(--border-dark); }
+.mission-progress-track > div { height: 100%; background: var(--accent); }
+.mission-instruction { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: calc(100% - 32px); margin: 0; text-align: center; font-size: clamp(24px, 4vw, 44px); font-weight: 500; color: var(--text-on-dark); text-shadow: 0 2px 6px var(--desktop-bg), 0 0 2px var(--desktop-bg); animation: mission-instruction-fade var(--instruction-fade) linear var(--instruction-visible) forwards; }
+@keyframes mission-instruction-fade { from { opacity: 1; } to { opacity: 0; } }
+.game-modal-overlay { position: absolute; inset: 0; z-index: calc(var(--layer-hud) + 1); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: var(--space-3); background: #172331e8; color: var(--text-on-dark); }
+.game-modal-overlay h1 { margin: 0 0 var(--space-3); font-size: clamp(28px, 5vw, 48px); font-weight: 500; }
+.game-modal-overlay p { margin: 0; }
+.game-modal-overlay button { margin-top: var(--space-3); padding: var(--space-2) var(--space-5); border: 1px solid var(--border-window-active); border-radius: var(--radius-control); background: transparent; }
+.game-modal-overlay button:hover { background: var(--hover-dark); }

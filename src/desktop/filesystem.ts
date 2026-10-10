@@ -30,3 +30,9 @@ export function updateFile(state: FileSystemState, id: string, content: string):
   if (!file) throw new Error('파일을 찾을 수 없습니다.');
   return { ...state, entries: { ...state.entries, [id]: { ...file, content } } };
 }
+export function deleteFile(state: FileSystemState, id: string): FileSystemState {
+  if (!getFile(state, id)) return state;
+  const entries = { ...state.entries };
+  delete entries[id];
+  return { ...state, entries };
+}

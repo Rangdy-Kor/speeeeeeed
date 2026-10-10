@@ -5,6 +5,18 @@ import { MenuBar } from './MenuBar';
 
 export function Notepad({ application, focused, store }: { application: NotepadState; focused: boolean; store: DesktopStore }) {
   const editor = useRef<HTMLTextAreaElement>(null);
+  const reportSelection = () => {
+    const field = editor.current;
+    if (field && document.activeElement === field) store.dispatch({ type: 'setNotepadSelection', applicationId: application.id, start: field.selectionStart, end: field.selectionEnd });
+  };
+  useEffect(() => {
+    const observe = () => {
+      const field = editor.current;
+      if (field && document.activeElement === field) store.dispatch({ type: 'setNotepadSelection', applicationId: application.id, start: field.selectionStart, end: field.selectionEnd });
+    };
+    document.addEventListener('selectionchange', observe);
+    return () => document.removeEventListener('selectionchange', observe);
+  }, [application.id, store]);
   useEffect(() => {
     if (!focused) return;
     const shortcut = (event: KeyboardEvent) => {
@@ -24,8 +36,8 @@ export function Notepad({ application, focused, store }: { application: NotepadS
   return <>
     <MenuBar active={focused && !application.dialog} menus={[
       { label: '파일', items: [{ label: '새로 만들기', action: () => action('newDocument') }, { label: '저장', shortcut: 'Ctrl+S', action: () => action('saveDocument') }] },
-      { label: '편집', items: [{ label: '모두 선택', shortcut: 'Ctrl+A', action: () => { editor.current?.focus(); editor.current?.select(); } }] },
+      { label: '편집', items: [{ label: '모두 선택', shortcut: 'Ctrl+A', action: () => { editor.current?.focus(); editor.current?.select(); reportSelection(); } }] },
     ]} />
-    <textarea ref={editor} className="notepad-editor" aria-label="메모장 내용" spellCheck={false} value={application.session.content} onChange={event => store.dispatch({ type: 'setNotepadText', applicationId: application.id, text: event.target.value })} />
+    <textarea ref={editor} className="notepad-editor" aria-label="메모장 내용" spellCheck={false} value={application.session.content} onSelect={reportSelection} onChange={event => store.dispatch({ type: 'setNotepadText', applicationId: application.id, text: event.target.value })} />
   </>;
 }
