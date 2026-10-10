@@ -15,12 +15,13 @@ export const STAGE_TUNING = {
 
 export const STAGE_INSTRUCTIONS = [
   { ko: '버튼을 누르세요!', en: 'Click the button!' },
-  { ko: '스페이스바를 누르세요!', en: 'Press the spacebar!' },
   { ko: '버튼을 옮기세요!', en: 'Drag the button!' },
   { ko: '마우스 휠을 굴리세요!', en: 'Scroll the wheel!' },
-  { ko: '1부터 9까지 누르세요!', en: 'Press 1 to 9!' },
+  { ko: '스페이스바를 누르세요!', en: 'Press the spacebar!' },
+  { ko: '1부터 6까지 누르세요!', en: 'Press 1 to 6!' },
   { ko: '더블 클릭하세요!', en: 'Double-click!' },
 ] as const;
+export const NUMBER_STEP_COUNT = 6;
 
 type ViewportProvider = () => GameViewport;
 const ACCENT = '#d5ff60';
@@ -58,7 +59,7 @@ export class ButtonStage implements Mission {
 }
 
 export class SpaceStage implements Mission {
-  readonly instruction = STAGE_INSTRUCTIONS[1].ko;
+  readonly instruction = STAGE_INSTRUCTIONS[3].ko;
   private pressed = false;
   private elapsedMs = 0;
   private readonly viewport: ViewportProvider;
@@ -89,7 +90,7 @@ export class SpaceStage implements Mission {
 }
 
 export class DragStage implements Mission {
-  readonly instruction = STAGE_INSTRUCTIONS[2].ko;
+  readonly instruction = STAGE_INSTRUCTIONS[1].ko;
   private readonly viewport: ViewportProvider;
   private previousSize = { width: 0, height: 0 };
   private position: Point = { x: 0, y: 0 };
@@ -155,7 +156,7 @@ export class DragStage implements Mission {
 }
 
 export class WheelStage implements Mission {
-  readonly instruction = STAGE_INSTRUCTIONS[3].ko;
+  readonly instruction = STAGE_INSTRUCTIONS[2].ko;
   readonly usesWheel = true;
   private value = 0;
   private readonly viewport: ViewportProvider;
@@ -189,30 +190,33 @@ export class NumbersStage implements Mission {
   update(): void {}
   handleInput(event: GameInput): void {
     if (event.type !== 'keydown') return;
-    const digit = /^(?:Digit|Numpad)([1-9])$/.exec(event.code)?.[1];
-    if (digit && Number(digit) === this.filled + 1) this.filled++;
+    const digit = Number(/^(?:Digit|Numpad)([0-9])$/.exec(event.code)?.[1]);
+    if (digit >= 1 && digit <= NUMBER_STEP_COUNT && digit === this.filled + 1) this.filled++;
   }
   render(ctx: CanvasRenderingContext2D): void {
     const v = this.viewport();
     const width = Math.min(STAGE_TUNING.gaugeMaxWidth, v.width * 0.85);
-    const step = width / 9;
-    for (let i = 0; i < 9; i++) {
+    const step = width / NUMBER_STEP_COUNT;
+    for (let i = 0; i < NUMBER_STEP_COUNT; i++) {
       const x = v.centerX - width / 2 + i * step;
       ctx.fillStyle = i < this.filled ? ACCENT : '#2b3343';
       ctx.fillRect(x + 2, v.centerY - 16, step - 4, 32);
       text(ctx, `${i + 1}`, { x: x + step / 2, y: v.centerY + 49 }, i === this.filled ? '#f5f7ff' : MUTED, 18);
     }
   }
-  isComplete(): boolean { return this.filled === 9; }
+  isComplete(): boolean { return this.filled === NUMBER_STEP_COUNT; }
   end(): void {}
 }
 
 export class DoubleClickStage implements Mission {
   readonly instruction = STAGE_INSTRUCTIONS[5].ko;
   private complete = false;
+  private readonly viewport: ViewportProvider;
+  constructor(viewport: ViewportProvider) { this.viewport = viewport; }
   start(): void { this.complete = false; }
   update(): void {}
-  render(): void {}
+  render(ctx: CanvasRenderingContext2D): void { circle(ctx, center(this.viewport()), STAGE_TUNING.buttonRadius); }
+  isInteractive(point: Point): boolean { return inside(point, center(this.viewport()), STAGE_TUNING.buttonRadius); }
   handleInput(event: GameInput): void { if (event.type === 'dblclick') this.complete = true; }
   isComplete(): boolean { return this.complete; }
   end(): void {}
@@ -220,8 +224,8 @@ export class DoubleClickStage implements Mission {
 
 export function createStages(viewport: ViewportProvider): readonly MissionFactory[] {
   return [
-    () => new ButtonStage(viewport), () => new SpaceStage(viewport),
-    () => new DragStage(viewport), () => new WheelStage(viewport),
-    () => new NumbersStage(viewport), () => new DoubleClickStage(),
+    () => new ButtonStage(viewport), () => new DragStage(viewport),
+    () => new WheelStage(viewport), () => new SpaceStage(viewport),
+    () => new NumbersStage(viewport), () => new DoubleClickStage(viewport),
   ];
 }

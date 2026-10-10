@@ -1,8 +1,8 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { GameSession } from '../game/session';
 import type { GameInput, InputState } from '../game/mission';
 import { ViewportTransform } from '../game/viewport';
-import { ButtonStage, createStages, DoubleClickStage, DragStage, NumbersStage, SpaceStage, STAGE_TUNING, WheelStage } from './stages';
+import { ButtonStage, createStages, DoubleClickStage, DragStage, NumbersStage, NUMBER_STEP_COUNT, SpaceStage, STAGE_INSTRUCTIONS, STAGE_TUNING, WheelStage } from './stages';
 
 const empty: InputState = { keys: new Set(), pointers: new Map() };
 const viewport = new ViewportTransform({ left: 0, top: 0, width: 1280, height: 720 }, 1);
@@ -25,7 +25,7 @@ describe('Stage 1: button click and shared interaction hit area', () => {
   });
 });
 
-describe('Stage 2: press with brief fill feedback', () => {
+describe('Stage 4: press with brief fill feedback', () => {
   it('stays empty before Space and only completes after the animation, without holding', () => {
     const stage = new SpaceStage(view);
     stage.start();
@@ -58,7 +58,7 @@ describe('Stage 2: press with brief fill feedback', () => {
   });
 });
 
-describe('Stage 3: forgiving drag', () => {
+describe('Stage 2: forgiving drag', () => {
   it('ignores the wrong pointer, allows re-grabbing, and accepts approximate overlap', () => {
     const stage = new DragStage(view);
     stage.start();
@@ -87,7 +87,7 @@ describe('Stage 3: forgiving drag', () => {
   });
 });
 
-describe('Stage 4: wheel gauge', () => {
+describe('Stage 3: wheel gauge', () => {
   it('adds the same progress in both directions and clamps at full', () => {
     const positive = new WheelStage(view);
     const negative = new WheelStage(view);
@@ -120,27 +120,52 @@ describe('Stage 5: number sequence', () => {
     it(`${prefix} advances exactly one segment per correct next number`, () => {
       const stage = new NumbersStage(view);
       stage.start();
-      for (let n = 1; n <= 9; n++) {
+      for (let n = 1; n <= 6; n++) {
         stage.handleInput(key(`${prefix}${n}`));
         expect(stage.completedSteps).toBe(n);
-        expect(stage.isComplete()).toBe(n === 9);
+        expect(stage.isComplete()).toBe(n === 6);
       }
     });
   }
   it('allows mixed keyboards and ignores wrong, repeated and unrelated inputs', () => {
     const stage = new NumbersStage(view);
     stage.start();
-    for (const code of ['Digit1', 'Numpad2', 'Digit3', 'Digit7', 'Numpad3', 'KeyA', 'Digit0']) stage.handleInput(key(code));
+    for (const code of ['Digit1', 'Numpad2', 'Digit3', 'Digit6', 'Digit7', 'Numpad3', 'KeyA', 'Digit0']) stage.handleInput(key(code));
     stage.handleInput({ type: 'keyup', code: 'Digit4' });
     expect(stage.completedSteps).toBe(3);
     stage.handleInput(key('Numpad4'));
     expect(stage.completedSteps).toBe(4);
   });
+  it('rejects 7, 8 and 9 before and after completion for both keyboard layouts', () => {
+    const stage = new NumbersStage(view);
+    stage.start();
+    for (let n = 1; n <= 5; n++) stage.handleInput(key(`Digit${n}`));
+    for (const prefix of ['Digit', 'Numpad']) {
+      for (const n of [7, 8, 9]) stage.handleInput(key(`${prefix}${n}`));
+    }
+    expect(stage.completedSteps).toBe(5);
+    expect(stage.isComplete()).toBe(false);
+    stage.handleInput(key('Numpad6'));
+    for (const prefix of ['Digit', 'Numpad']) {
+      for (const n of [7, 8, 9]) stage.handleInput(key(`${prefix}${n}`));
+    }
+    expect(stage.completedSteps).toBe(6);
+    expect(stage.isComplete()).toBe(true);
+  });
+  it('renders exactly six gauge segments and labels', () => {
+    const ctx = { fillRect: vi.fn(), fillText: vi.fn(), fillStyle: '', font: '', textAlign: '' };
+    const stage = new NumbersStage(view);
+    stage.start();
+    stage.render(ctx as unknown as CanvasRenderingContext2D);
+    expect(NUMBER_STEP_COUNT).toBe(6);
+    expect(ctx.fillRect).toHaveBeenCalledTimes(6);
+    expect(ctx.fillText.mock.calls.map(call => call[0])).toEqual(['1', '2', '3', '4', '5', '6']);
+  });
 });
 
 describe('Stage 6: native double click', () => {
   it('accepts dblclick anywhere, without treating two click events as a double click', () => {
-    const stage = new DoubleClickStage();
+    const stage = new DoubleClickStage(view);
     stage.start();
     stage.handleInput({ type: 'click', point: { x: 10, y: 10 } });
     stage.handleInput({ type: 'click', point: { x: 10, y: 10 } });
@@ -148,9 +173,37 @@ describe('Stage 6: native double click', () => {
     stage.handleInput({ type: 'dblclick', point: { x: 1279, y: 719 } });
     expect(stage.isComplete()).toBe(true);
   });
+  it('renders the same centered button as Stage 1 and marks only that button interactive', () => {
+    const makeContext = () => ({ beginPath: vi.fn(), arc: vi.fn(), fill: vi.fn(), fillStyle: '' });
+    const buttonContext = makeContext();
+    const doubleContext = makeContext();
+    new ButtonStage(view).render(buttonContext as unknown as CanvasRenderingContext2D);
+    const stage = new DoubleClickStage(view);
+    stage.render(doubleContext as unknown as CanvasRenderingContext2D);
+    expect(doubleContext.arc).toHaveBeenCalledWith(640, 360, STAGE_TUNING.buttonRadius, 0, Math.PI * 2);
+    expect(doubleContext.arc.mock.calls).toEqual(buttonContext.arc.mock.calls);
+    expect(doubleContext.fill).toHaveBeenCalledTimes(1);
+    expect(doubleContext.fillStyle).toBe(buttonContext.fillStyle);
+    expect(stage.isInteractive({ x: 640, y: 360 })).toBe(true);
+    expect(stage.isInteractive({ x: 10, y: 10 })).toBe(false);
+  });
+  it('completes on a native dblclick on the central button but ignores a single click', () => {
+    const stage = new DoubleClickStage(view);
+    stage.start();
+    stage.handleInput({ type: 'click', point: { x: 640, y: 360 } });
+    expect(stage.isComplete()).toBe(false);
+    stage.handleInput({ type: 'dblclick', point: { x: 640, y: 360 } });
+    expect(stage.isComplete()).toBe(true);
+  });
 });
 
 describe('six-stage playlist on different viewports', () => {
+  it('registers the intentional Mouse → Mouse → Mouse → Keyboard → Keyboard → Mouse order', () => {
+    const stages = createStages(view).map(factory => factory());
+    expect(stages.map(stage => stage.constructor)).toEqual([ButtonStage, DragStage, WheelStage, SpaceStage, NumbersStage, DoubleClickStage]);
+    expect(stages.map(stage => stage.instruction)).toEqual(STAGE_INSTRUCTIONS.map(value => value.ko));
+    expect(STAGE_INSTRUCTIONS.map(value => value.en)).toEqual(['Click the button!', 'Drag the button!', 'Scroll the wheel!', 'Press the spacebar!', 'Press 1 to 6!', 'Double-click!']);
+  });
   for (const [width, height] of [[1920, 1080], [1280, 720], [800, 1200], [390, 844], [2560, 1080]]) {
     it(`${width}×${height}: completes all six stages in order and supports a clean restart`, () => {
       const v = new ViewportTransform({ left: 0, top: 0, width: width!, height: height! }, 2);
@@ -164,18 +217,18 @@ describe('six-stage playlist on different viewports', () => {
       game.start(now);
       send({ type: 'click', point: { x: v.centerX, y: v.centerY } });
       expect(game.missionNumber).toBe(2);
-      send(key('Space'));
-      expect(game.missionNumber).toBe(2);
-      now += STAGE_TUNING.spaceFillMs;
-      game.update(now, empty);
-      expect(game.missionNumber).toBe(3);
       const gap = Math.min(STAGE_TUNING.dragMaxSeparation, v.width * STAGE_TUNING.dragWidthFraction);
       send(pointer('pointerdown', v.centerX - gap, v.centerY));
       send(pointer('pointermove', v.centerX + gap - 50, v.centerY));
-      expect(game.missionNumber).toBe(4);
+      expect(game.missionNumber).toBe(3);
       send({ type: 'wheel', delta: -1000 });
+      expect(game.missionNumber).toBe(4);
+      send(key('Space'));
+      expect(game.missionNumber).toBe(4);
+      now += STAGE_TUNING.spaceFillMs;
+      game.update(now, empty);
       expect(game.missionNumber).toBe(5);
-      for (let n = 1; n <= 9; n++) send(key(`${n % 2 ? 'Digit' : 'Numpad'}${n}`));
+      for (let n = 1; n <= 6; n++) send(key(`${n % 2 ? 'Digit' : 'Numpad'}${n}`));
       expect(game.missionNumber).toBe(6);
       send({ type: 'dblclick', point: { x: 5, y: 5 } });
       expect(game.phase).toBe('clear');

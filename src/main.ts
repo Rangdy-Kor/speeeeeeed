@@ -19,7 +19,7 @@ app.innerHTML = `
       <p class="controls">마우스 · 키보드 · 휠</p>
     </section>
     <section class="gameplay" aria-label="게임" hidden>
-      <canvas tabindex="0" aria-label="게임 플레이 영역. 클릭, 스페이스, 드래그, 휠, 숫자 1부터 9, 더블 클릭."></canvas>
+      <canvas tabindex="0" aria-label="게임 플레이 영역. 클릭, 드래그, 휠, 스페이스, 숫자 1부터 6, 더블 클릭."></canvas>
     </section>
     <section class="screen result" aria-labelledby="result-title" aria-live="polite" hidden>
       <h1 id="result-title"></h1>
