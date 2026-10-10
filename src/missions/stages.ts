@@ -20,11 +20,11 @@ export const STAGE_TUNING = {
 
 export const STAGE_INSTRUCTIONS = [
   { ko: "버튼을 누르세요!", en: "Click the button!" },
-  { ko: "버튼을 옮기세요!", en: "Drag the button!" },
-  { ko: "스페이스바를 누르세요!", en: "Press the spacebar!" },
-  { ko: "1부터 3까지 누르세요!", en: "Press 1 to 3!" },
   { ko: "더블 클릭하세요!", en: "Double-click!" },
+  { ko: "버튼을 옮기세요!", en: "Drag the button!" },
   { ko: "마우스 휠을 굴리세요!", en: "Scroll the wheel!" },
+  { ko: "1부터 3까지 누르세요!", en: "Press 1 to 3!" },
+  { ko: "스페이스바를 누르세요!", en: "Press the spacebar!" },
 ] as const;
 export const NUMBER_STEP_COUNT = 3;
 
@@ -83,7 +83,7 @@ export class ButtonStage implements Mission {
 }
 
 export class SpaceStage implements Mission {
-  readonly instruction = STAGE_INSTRUCTIONS[2].ko;
+  readonly instruction = STAGE_INSTRUCTIONS[5].ko;
   private pressed = false;
   private elapsedMs = 0;
   private readonly viewport: ViewportProvider;
@@ -131,7 +131,7 @@ export class SpaceStage implements Mission {
 }
 
 export class DragStage implements Mission {
-  readonly instruction = STAGE_INSTRUCTIONS[1].ko;
+  readonly instruction = STAGE_INSTRUCTIONS[2].ko;
   private readonly viewport: ViewportProvider;
   private previousSize = { width: 0, height: 0 };
   private position: Point = { x: 0, y: 0 };
@@ -241,7 +241,7 @@ export class DragStage implements Mission {
 }
 
 export class WheelStage implements Mission {
-  readonly instruction = STAGE_INSTRUCTIONS[5].ko;
+  readonly instruction = STAGE_INSTRUCTIONS[3].ko;
   readonly usesWheel = true;
   private value = 0;
   private readonly viewport: ViewportProvider;
@@ -282,7 +282,7 @@ export class WheelStage implements Mission {
 }
 
 export class NumbersStage implements Mission {
-  readonly instruction = STAGE_INSTRUCTIONS[3].ko;
+  readonly instruction = STAGE_INSTRUCTIONS[4].ko;
   private filled = 0;
   private readonly viewport: ViewportProvider;
   constructor(viewport: ViewportProvider) {
@@ -325,7 +325,7 @@ export class NumbersStage implements Mission {
 }
 
 export class DoubleClickStage implements Mission {
-  readonly instruction = STAGE_INSTRUCTIONS[4].ko;
+  readonly instruction = STAGE_INSTRUCTIONS[1].ko;
   private complete = false;
   private readonly viewport: ViewportProvider;
   constructor(viewport: ViewportProvider) {
@@ -355,10 +355,10 @@ export function createStages(
 ): readonly MissionFactory[] {
   return [
     () => new ButtonStage(viewport),
-    () => new DragStage(viewport),
-    () => new SpaceStage(viewport),
-    () => new NumbersStage(viewport),
     () => new DoubleClickStage(viewport),
+    () => new DragStage(viewport),
     () => new WheelStage(viewport),
+    () => new NumbersStage(viewport),
+    () => new SpaceStage(viewport),
   ];
 }

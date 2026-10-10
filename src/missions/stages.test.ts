@@ -46,7 +46,7 @@ describe("Stage 1: button click and shared interaction hit area", () => {
   });
 });
 
-describe("Stage 3: press with brief fill feedback", () => {
+describe("Stage 6: press with brief fill feedback", () => {
   it("stays empty before Space and only completes after the animation, without holding", () => {
     const stage = new SpaceStage(view);
     stage.start();
@@ -79,7 +79,7 @@ describe("Stage 3: press with brief fill feedback", () => {
   });
 });
 
-describe("Stage 2: forgiving drag", () => {
+describe("Stage 3: forgiving drag", () => {
   it("ignores the wrong pointer, allows re-grabbing, and accepts approximate overlap", () => {
     const stage = new DragStage(view);
     stage.start();
@@ -110,7 +110,7 @@ describe("Stage 2: forgiving drag", () => {
   });
 });
 
-describe("Stage 6: wheel gauge", () => {
+describe("Stage 4: wheel gauge", () => {
   it("adds the same progress in both directions and clamps at full", () => {
     const positive = new WheelStage(view);
     const negative = new WheelStage(view);
@@ -168,7 +168,7 @@ describe("Stage 6: wheel gauge", () => {
   });
 });
 
-describe("Stage 4: number sequence", () => {
+describe("Stage 5: number sequence", () => {
   for (const prefix of ["Digit", "Numpad"]) {
     it(`${prefix} advances exactly one segment per correct next number`, () => {
       const stage = new NumbersStage(view);
@@ -239,7 +239,7 @@ describe("Stage 4: number sequence", () => {
   });
 });
 
-describe("Stage 5: native double click", () => {
+describe("Stage 2: native double click", () => {
   it("accepts dblclick anywhere, without treating two click events as a double click", () => {
     const stage = new DoubleClickStage(view);
     stage.start();
@@ -287,26 +287,26 @@ describe("Stage 5: native double click", () => {
 });
 
 describe("six-stage playlist on different viewports", () => {
-  it("registers the intentional Mouse → Mouse → Keyboard → Keyboard → Mouse → Mouse order", () => {
+  it("registers the intentional Mouse → Mouse → Mouse → Mouse → Keyboard → Keyboard order", () => {
     const stages = createStages(view).map((factory) => factory());
     expect(stages.map((stage) => stage.constructor)).toEqual([
       ButtonStage,
-      DragStage,
-      SpaceStage,
-      NumbersStage,
       DoubleClickStage,
+      DragStage,
       WheelStage,
+      NumbersStage,
+      SpaceStage,
     ]);
     expect(stages.map((stage) => stage.instruction)).toEqual(
       STAGE_INSTRUCTIONS.map((value) => value.ko),
     );
     expect(STAGE_INSTRUCTIONS.map((value) => value.en)).toEqual([
       "Click the button!",
-      "Drag the button!",
-      "Press the spacebar!",
-      "Press 1 to 3!",
       "Double-click!",
+      "Drag the button!",
       "Scroll the wheel!",
+      "Press 1 to 3!",
+      "Press the spacebar!",
     ]);
   });
   for (const [width, height] of [
@@ -331,27 +331,28 @@ describe("six-stage playlist on different viewports", () => {
       game.start(now);
       send({ type: "click", point: { x: v.centerX, y: v.centerY } });
       expect(game.missionNumber).toBe(2);
+      send({ type: "dblclick", point: { x: 5, y: 5 } });
+      expect(game.missionNumber).toBe(3);
       const gap = Math.min(
         STAGE_TUNING.dragMaxSeparation,
         v.width * STAGE_TUNING.dragWidthFraction,
       );
       send(pointer("pointerdown", v.centerX - gap, v.centerY));
       send(pointer("pointermove", v.centerX + gap - 50, v.centerY));
-      expect(game.missionNumber).toBe(3);
-      send(key("Space"));
-      expect(game.missionNumber).toBe(3);
-      now += STAGE_TUNING.spaceFillMs;
-      game.update(now, empty);
       expect(game.missionNumber).toBe(4);
-      for (let n = 1; n <= 3; n++)
-        send(key(`${n % 2 ? "Digit" : "Numpad"}${n}`));
-      expect(game.missionNumber).toBe(5);
-      send({ type: "dblclick", point: { x: 5, y: 5 } });
-      expect(game.missionNumber).toBe(6);
-      expect(game.phase).toBe("playing");
       send({ type: "wheel", delta: -600 });
+      expect(game.missionNumber).toBe(4);
       expect(game.phase).toBe("playing");
       send({ type: "wheel", delta: 700 });
+      expect(game.missionNumber).toBe(5);
+      for (let n = 1; n <= 3; n++)
+        send(key(`${n % 2 ? "Digit" : "Numpad"}${n}`));
+      expect(game.missionNumber).toBe(6);
+      expect(game.phase).toBe("playing");
+      send(key("Space"));
+      expect(game.phase).toBe("playing");
+      now += STAGE_TUNING.spaceFillMs;
+      game.update(now, empty);
       expect(game.phase).toBe("clear");
       expect(game.completed).toBe(6);
       expect(game.timings).toHaveLength(6);
